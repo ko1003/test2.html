@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>k-Nearest Neighbors (kNN) - Interactive Visualizer</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+    .back-btn { color: var(--accent-blue); text-decoration: none; font-weight: bold; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .panel { background: var(--card-bg); border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .control-group { margin-bottom: 18px; }
+    .control-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .control-group input[type="range"] { width: 100%; }
+    .btn { width: 100%; padding: 10px; background: var(--accent-blue); border: none; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; }
+    canvas { background: #0b1120; border-radius: 8px; border: 1px solid #334155; display: block; width: 100%; height: auto; }
+    .exp { margin-top: 20px; line-height: 1.6; color: #cbd5e1; }
+    .exp h3 { color: var(--accent-green); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span style="color: var(--accent-blue); font-size: 0.85rem; text-transform: uppercase;">Supervised Learning</span>
+        <h2>3. k-Nearest Neighbors (kNN)</h2>
+      </div>
+      <a href="ml_visualizers_index.html" class="back-btn">⬅ กลับไปที่เมนูหลัก</a>
+    </header>
+
+    <div class="grid">
+      <div class="panel" id="controls"></div>
+      <div>
+        <canvas id="vizCanvas" width="600" height="400"></canvas>
+        <div class="panel exp">
+          <h3>หลักการทำงาน (How it works)</h3>
+          <p>ค้นหาเพื่อนบ้านที่ใกล้ที่สุด k จุด และทำนายคลาสตามเสียงข้างมาก (Majority Voting)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    
+        let kVal = 3, target = null, points = [];
+        function initData() {
+            points = [];
+            for(let i=0; i<20; i++) points.push({x: Math.random()*230+30, y: Math.random()*300+50, cls: 'Class A'});
+            for(let i=0; i<20; i++) points.push({x: Math.random()*230+300, y: Math.random()*300+50, cls: 'Class B'});
+            target = {x: 280, y: 200};
+        }
+        function setupControls(ctrl) {
+            ctrl.innerHTML = `
+                <div class="control-group">
+                    <label>จำนวน K (Neighbors): <span id="k-val">3</span></label>
+                    <input type="range" id="k" min="1" max="15" value="3" step="2">
+                </div>
+                <p style="font-size:0.85rem; color:#94a3b8; margin-top:10px;">💡 คลิกบนผืนผ้าใบเพื่อย้ายจุดทดสอบ (จุดขาว)</p>
+            `;
+            document.getElementById('k').oninput = (e) => { kVal = parseInt(e.target.value); document.getElementById('k-val').innerText = kVal; draw(); };
+            canvas.onclick = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                target = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                draw();
+            };
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw points
+            points.forEach(p => {
+                ctx.fillStyle = p.cls === 'Class A' ? '#38bdf8' : '#fb923c';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI*2); ctx.fill();
+            });
+            if(target) {
+                let dists = points.map(p => ({
+                    p, d: Math.hypot(p.x - target.x, p.y - target.y)
+                })).sort((a,b) => a.d - b.d);
+                
+                let kNeighbors = dists.slice(0, kVal);
+                let countA = kNeighbors.filter(n => n.p.cls === 'Class A').length;
+                let countB = kVal - countA;
+                
+                // Draw connecting lines
+                kNeighbors.forEach(n => {
+                    ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(target.x, target.y); ctx.lineTo(n.p.x, n.p.y); ctx.stroke();
+                });
+
+                // Target Node
+                ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(target.x, target.y, 9, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+
+                ctx.fillStyle = '#f8fafc'; ctx.font = '14px sans-serif';
+                ctx.fillText(`ผลทำนาย: ${countA > countB ? 'Class A (ฟ้า)' : 'Class B (ส้ม)'} (${countA} vs ${countB})`, 20, 30);
+            }
+        }
+        
+
+    if(typeof initData === 'function') initData();
+    setupControls(document.getElementById('controls'));
+    draw();
+  </script>
+</body>
+</html>

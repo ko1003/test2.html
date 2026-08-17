@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linear Regression - Interactive Visualizer</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+    .back-btn { color: var(--accent-blue); text-decoration: none; font-weight: bold; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .panel { background: var(--card-bg); border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .control-group { margin-bottom: 18px; }
+    .control-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .control-group input[type="range"] { width: 100%; }
+    .btn { width: 100%; padding: 10px; background: var(--accent-blue); border: none; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; }
+    canvas { background: #0b1120; border-radius: 8px; border: 1px solid #334155; display: block; width: 100%; height: auto; }
+    .exp { margin-top: 20px; line-height: 1.6; color: #cbd5e1; }
+    .exp h3 { color: var(--accent-green); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span style="color: var(--accent-blue); font-size: 0.85rem; text-transform: uppercase;">Supervised Learning</span>
+        <h2>1. Linear Regression</h2>
+      </div>
+      <a href="ml_visualizers_index.html" class="back-btn">⬅ กลับไปที่เมนูหลัก</a>
+    </header>
+
+    <div class="grid">
+      <div class="panel" id="controls"></div>
+      <div>
+        <canvas id="vizCanvas" width="600" height="400"></canvas>
+        <div class="panel exp">
+          <h3>หลักการทำงาน (How it works)</h3>
+          <p>การถดถอยเชิงเส้น ค้นหาเส้นตรง y = mx + c ที่ลดค่า Loss (MSE) ระหว่างจุดข้อมูลกับเส้นทำนาย</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    
+        let slope = 0.5, intercept = 180, points = [];
+        function initData() {
+            points = [];
+            for(let i=0; i<40; i++) {
+                let x = Math.random() * 500 + 30;
+                let y = 0.6 * x + 80 + (Math.random() - 0.5) * 70;
+                points.push({x, y});
+            }
+        }
+        function setupControls(ctrl) {
+            ctrl.innerHTML = `
+                <div class="control-group">
+                    <label>Slope (m): <span id="m-val">0.5</span></label>
+                    <input type="range" id="m" min="-2" max="2" value="0.5" step="0.05">
+                </div>
+                <div class="control-group">
+                    <label>Intercept (c): <span id="c-val">180</span></label>
+                    <input type="range" id="c" min="0" max="400" value="180" step="5">
+                </div>
+                <button class="btn" onclick="initData(); draw();">สุ่มข้อมูลใหม่</button>
+            `;
+            document.getElementById('m').oninput = (e) => { slope = parseFloat(e.target.value); document.getElementById('m-val').innerText = slope; draw(); };
+            document.getElementById('c').oninput = (e) => { intercept = parseFloat(e.target.value); document.getElementById('c-val').innerText = intercept; draw(); };
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Residuals
+            let totalLoss = 0;
+            points.forEach(p => {
+                let predY = canvas.height - (slope * p.x + intercept);
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, predY); ctx.stroke();
+                totalLoss += Math.pow(p.y - predY, 2);
+            });
+            // Points
+            points.forEach(p => {
+                ctx.fillStyle = '#fb923c';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2); ctx.fill();
+            });
+            // Line
+            ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - intercept);
+            ctx.lineTo(canvas.width, canvas.height - (slope * canvas.width + intercept));
+            ctx.stroke();
+            // Display Loss
+            ctx.fillStyle = '#f8fafc'; ctx.font = '14px sans-serif';
+            ctx.fillText('MSE Loss: ' + (totalLoss / points.length).toFixed(2), 20, 30);
+        }
+        
+
+    if(typeof initData === 'function') initData();
+    setupControls(document.getElementById('controls'));
+    draw();
+  </script>
+</body>
+</html>

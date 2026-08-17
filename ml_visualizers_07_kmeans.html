@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-Means Clustering - Interactive Visualizer</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+    .back-btn { color: var(--accent-blue); text-decoration: none; font-weight: bold; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .panel { background: var(--card-bg); border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .control-group { margin-bottom: 18px; }
+    .control-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .control-group input[type="range"] { width: 100%; }
+    .btn { width: 100%; padding: 10px; background: var(--accent-blue); border: none; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; }
+    canvas { background: #0b1120; border-radius: 8px; border: 1px solid #334155; display: block; width: 100%; height: auto; }
+    .exp { margin-top: 20px; line-height: 1.6; color: #cbd5e1; }
+    .exp h3 { color: var(--accent-green); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span style="color: var(--accent-blue); font-size: 0.85rem; text-transform: uppercase;">Unsupervised Learning</span>
+        <h2>7. K-Means Clustering</h2>
+      </div>
+      <a href="ml_visualizers_index.html" class="back-btn">⬅ กลับไปที่เมนูหลัก</a>
+    </header>
+
+    <div class="grid">
+      <div class="panel" id="controls"></div>
+      <div>
+        <canvas id="vizCanvas" width="600" height="400"></canvas>
+        <div class="panel exp">
+          <h3>หลักการทำงาน (How it works)</h3>
+          <p>จัดกลุ่มข้อมูลโดยค้นหาจุดศูนย์กลาง K จุด และคำนวณปรับจุดศูนย์กลางด้วยค่าเฉลี่ยซ้ำๆ</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    
+        let kCount = 3, points = [], centroids = [];
+        function initData() {
+            points = [];
+            for(let i=0; i<90; i++) {
+                points.push({x: Math.random()*(canvas.width-100)+50, y: Math.random()*(canvas.height-100)+50, cluster: 0});
+            }
+            reinitCentroids();
+        }
+        function reinitCentroids() {
+            centroids = [];
+            for(let i=0; i<kCount; i++) {
+                centroids.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, color: `hsl(${i * 360/kCount}, 80%, 60%)`});
+            }
+        }
+        function setupControls(ctrl) {
+            ctrl.innerHTML = `
+                <div class="control-group">
+                    <label>จำนวน Clusters (K): <span id="k-val">3</span></label>
+                    <input type="range" id="k" min="2" max="6" value="3" step="1">
+                </div>
+                <button class="btn" onclick="reinitCentroids(); draw();">สุ่ม Centroids ใหม่</button>
+            `;
+            document.getElementById('k').oninput = (e) => { kCount = parseInt(e.target.value); document.getElementById('k-val').innerText = kCount; reinitCentroids(); draw(); };
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Assign points
+            points.forEach(p => {
+                let minDist = Infinity;
+                let cIdx = 0;
+                centroids.forEach((c, idx) => {
+                    let d = Math.hypot(p.x - c.x, p.y - c.y);
+                    if(d < minDist) { minDist = d; cIdx = idx; }
+                });
+                p.cluster = cIdx;
+                ctx.fillStyle = centroids[cIdx].color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
+            });
+            // Draw Centroids
+            centroids.forEach(c => {
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.fillStyle = c.color;
+                ctx.beginPath(); ctx.arc(c.x, c.y, 12, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            });
+        }
+        
+
+    if(typeof initData === 'function') initData();
+    setupControls(document.getElementById('controls'));
+    draw();
+  </script>
+</body>
+</html>

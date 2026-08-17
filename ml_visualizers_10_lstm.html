@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LSTM (Long Short-Term Memory) - Interactive Visualizer</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+    .back-btn { color: var(--accent-blue); text-decoration: none; font-weight: bold; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .panel { background: var(--card-bg); border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .control-group { margin-bottom: 18px; }
+    .control-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .control-group input[type="range"] { width: 100%; }
+    .btn { width: 100%; padding: 10px; background: var(--accent-blue); border: none; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; }
+    canvas { background: #0b1120; border-radius: 8px; border: 1px solid #334155; display: block; width: 100%; height: auto; }
+    .exp { margin-top: 20px; line-height: 1.6; color: #cbd5e1; }
+    .exp h3 { color: var(--accent-green); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span style="color: var(--accent-blue); font-size: 0.85rem; text-transform: uppercase;">Deep Learning Architecture</span>
+        <h2>10. LSTM (Long Short-Term Memory)</h2>
+      </div>
+      <a href="ml_visualizers_index.html" class="back-btn">⬅ กลับไปที่เมนูหลัก</a>
+    </header>
+
+    <div class="grid">
+      <div class="panel" id="controls"></div>
+      <div>
+        <canvas id="vizCanvas" width="600" height="400"></canvas>
+        <div class="panel exp">
+          <h3>หลักการทำงาน (How it works)</h3>
+          <p>โครงข่าย RNN แบบมี Forget Gate, Input Gate และ Output Gate เพื่อจดจำบริบทระยะยาว</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    
+        let forgetVal = 0.8;
+        function setupControls(ctrl) {
+            ctrl.innerHTML = `
+                <div class="control-group">
+                    <label>Forget Gate (Keep Ratio): <span id="f-val">0.8</span></label>
+                    <input type="range" id="f" min="0.0" max="1.0" value="0.8" step="0.1">
+                </div>
+            `;
+            document.getElementById('f').oninput = (e) => { forgetVal = parseFloat(e.target.value); document.getElementById('f-val').innerText = forgetVal; draw(); };
+        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Cell Box
+            ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+            ctx.fillRect(100, 80, 360, 240); ctx.strokeRect(100, 80, 360, 240);
+
+            // Gates
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(140, 150, 60, 40); // Forget
+            ctx.fillStyle = '#4ade80'; ctx.fillRect(250, 150, 60, 40); // Input
+            ctx.fillStyle = '#c084fc'; ctx.fillRect(360, 150, 60, 40); // Output
+
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('Forget Gate', 170, 174);
+            ctx.fillText('Input Gate', 280, 174);
+            ctx.fillText('Output Gate', 390, 174);
+
+            // Flow Line (Cell State)
+            ctx.strokeStyle = `rgba(250, 204, 21, ${forgetVal})`; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.moveTo(40, 110); ctx.lineTo(520, 110); ctx.stroke();
+            ctx.fillStyle = '#facc15'; ctx.fillText('Cell State (C_t)', 280, 100);
+
+            ctx.textAlign = 'left';
+        }
+        
+
+    if(typeof initData === 'function') initData();
+    setupControls(document.getElementById('controls'));
+    draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reinforcement Learning (Q-Learning) - Interactive Visualizer</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+    .back-btn { color: var(--accent-blue); text-decoration: none; font-weight: bold; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .panel { background: var(--card-bg); border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+    .control-group { margin-bottom: 18px; }
+    .control-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .control-group input[type="range"] { width: 100%; }
+    .btn { width: 100%; padding: 10px; background: var(--accent-blue); border: none; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; }
+    canvas { background: #0b1120; border-radius: 8px; border: 1px solid #334155; display: block; width: 100%; height: auto; }
+    .exp { margin-top: 20px; line-height: 1.6; color: #cbd5e1; }
+    .exp h3 { color: var(--accent-green); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span style="color: var(--accent-blue); font-size: 0.85rem; text-transform: uppercase;">Reinforcement Learning</span>
+        <h2>12. Reinforcement Learning (Q-Learning)</h2>
+      </div>
+      <a href="ml_visualizers_index.html" class="back-btn">⬅ กลับไปที่เมนูหลัก</a>
+    </header>
+
+    <div class="grid">
+      <div class="panel" id="controls"></div>
+      <div>
+        <canvas id="vizCanvas" width="600" height="400"></canvas>
+        <div class="panel exp">
+          <h3>หลักการทำงาน (How it works)</h3>
+          <p>Agent เรียนรู้จากการลองผิดลองถูกเพื่อสะสมรางวัล (Reward) สูงสุดด้วย Q-Table</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let agentPos = {x: 0, y: 0};
+    let goal = {x: 3, y: 3};
+    let learningRate = 0.8;
+    let exploration = 0.3;
+    let rewardValue = 10;
+
+    function syncLabels() {
+        document.getElementById('goalx-val').innerText = goal.x;
+        document.getElementById('goaly-val').innerText = goal.y;
+        document.getElementById('lr-val').innerText = learningRate.toFixed(2);
+        document.getElementById('eps-val').innerText = exploration.toFixed(2);
+        document.getElementById('reward-val').innerText = rewardValue;
+    }
+
+    function setupControls(ctrl) {
+        ctrl.innerHTML = `
+            <div class="control-group">
+                <label>Goal X: <span id="goalx-val">3</span></label>
+                <input type="range" id="goalx" min="0" max="3" value="3" step="1">
+            </div>
+            <div class="control-group">
+                <label>Goal Y: <span id="goaly-val">3</span></label>
+                <input type="range" id="goaly" min="0" max="3" value="3" step="1">
+            </div>
+            <div class="control-group">
+                <label>Learning Rate: <span id="lr-val">0.80</span></label>
+                <input type="range" id="lr" min="0.1" max="1.0" value="0.8" step="0.1">
+            </div>
+            <div class="control-group">
+                <label>Exploration: <span id="eps-val">0.30</span></label>
+                <input type="range" id="eps" min="0.0" max="1.0" value="0.3" step="0.05">
+            </div>
+            <div class="control-group">
+                <label>Reward: <span id="reward-val">10</span></label>
+                <input type="range" id="reward" min="1" max="20" value="10" step="1">
+            </div>
+            <button class="btn" onclick="stepRL(); draw();">เดิน 1 สเต็ป (Step Action)</button>
+            <button class="btn" style="margin-top:8px; background:#e2e8f0;" onclick="agentPos={x:0,y:0}; draw();">รีเซ็ตตำแหน่ง</button>
+        `;
+
+        document.getElementById('goalx').oninput = (e) => { goal.x = parseInt(e.target.value); syncLabels(); draw(); };
+        document.getElementById('goaly').oninput = (e) => { goal.y = parseInt(e.target.value); syncLabels(); draw(); };
+        document.getElementById('lr').oninput = (e) => { learningRate = parseFloat(e.target.value); syncLabels(); draw(); };
+        document.getElementById('eps').oninput = (e) => { exploration = parseFloat(e.target.value); syncLabels(); draw(); };
+        document.getElementById('reward').oninput = (e) => { rewardValue = parseInt(e.target.value); syncLabels(); draw(); };
+    }
+
+    function stepRL() {
+        let moveX = 0, moveY = 0;
+        if (Math.random() < exploration) {
+            const dir = Math.floor(Math.random() * 4);
+            if (dir === 0) moveX = 1;
+            if (dir === 1) moveX = -1;
+            if (dir === 2) moveY = 1;
+            if (dir === 3) moveY = -1;
+        } else {
+            if (goal.x > agentPos.x) moveX = 1;
+            else if (goal.x < agentPos.x) moveX = -1;
+            else if (goal.y > agentPos.y) moveY = 1;
+            else if (goal.y < agentPos.y) moveY = -1;
+        }
+
+        agentPos.x = Math.max(0, Math.min(3, agentPos.x + moveX));
+        agentPos.y = Math.max(0, Math.min(3, agentPos.y + moveY));
+
+        if (agentPos.x === goal.x && agentPos.y === goal.y) {
+            learningRate = Math.min(1, learningRate + 0.05);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let size = 70;
+        let startX = 140, startY = 60;
+        for(let r=0; r<4; r++) {
+            for(let c=0; c<4; c++) {
+                ctx.fillStyle = (r===goal.y && c===goal.x) ? 'rgba(74, 222, 128, 0.3)' : '#1e293b';
+                ctx.fillRect(startX + c*size, startY + r*size, size, size);
+                ctx.strokeStyle = '#334155'; ctx.strokeRect(startX + c*size, startY + r*size, size, size);
+            }
+        }
+
+        ctx.fillStyle = '#4ade80'; ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('REWARD ' + rewardValue, startX + goal.x*size + 6, startY + goal.y*size + 40);
+
+        ctx.fillStyle = '#fb923c';
+        ctx.beginPath();
+        ctx.arc(startX + agentPos.x*size + size/2, startY + agentPos.y*size + size/2, 18, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('LR=' + learningRate.toFixed(2) + '  Explore=' + exploration.toFixed(2), 20, 30);
+    }
+
+    if(typeof initData === 'function') initData();
+    setupControls(document.getElementById('controls'));
+    syncLabels();
+    draw();
+  </script>
+</body>
+</html>
